@@ -164,17 +164,21 @@ export default function GroupManager() {
               <span>{groupName} ({groupAthletes.length})</span>
               {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
             </h3>
-            {isExpanded && groupAthletes.map(athlete => (
-              <div key={athlete.id} className="card flex-between" style={{ marginBottom: '0.5rem', padding: '0.75rem 1rem' }}>
-                <div>
-                  <strong>{athlete.firstName} {athlete.lastName}</strong>
-                </div>
-                <div>
-                  <button className="btn-icon" onClick={() => handleEdit(athlete)}><Edit2 size={16} /></button>
-                  <button className="btn-icon" onClick={() => handleDelete(athlete.id!)}><Trash2 size={16} color="var(--absent-color)" /></button>
-                </div>
+            {isExpanded && (
+              <div style={{ marginTop: '0.5rem' }}>
+                {groupAthletes.map(athlete => (
+                  <div key={athlete.id} className="card flex-between" style={{ marginBottom: '0.5rem', padding: '0.75rem 1rem' }}>
+                    <div>
+                      <strong>{athlete.firstName} {athlete.lastName}</strong>
+                    </div>
+                    <div>
+                      <button className="btn-icon" onClick={() => handleEdit(athlete)}><Edit2 size={16} /></button>
+                      <button className="btn-icon" onClick={() => handleDelete(athlete.id!)}><Trash2 size={16} color="var(--absent-color)" /></button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         );
       })}

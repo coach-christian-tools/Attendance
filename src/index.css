@@ -30,6 +30,7 @@ body {
   background-color: var(--bg-color);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
 }
 
 /* Base Layout */
@@ -62,7 +63,7 @@ body {
 .main-content {
   flex: 1;
   padding: 0.5rem;
-  padding-bottom: 5rem;
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom));
   /* space for bottom nav */
 }
 

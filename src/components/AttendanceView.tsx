@@ -178,7 +178,7 @@ export default function AttendanceView() {
                     {athlete.firstName} {athlete.lastName ? athlete.lastName.charAt(0) + '.' : ''}
                     {ageStr && <span style={{ marginLeft: '0.25rem', fontSize: '0.75rem', opacity: 0.8 }}>({ageStr})</span>}
                   </div>
-                  <div className="athlete-group">{athlete.group}</div>
+                  {isFullTeam && <div className="athlete-group">{athlete.group}</div>}
                 </div>
               );
             })}
