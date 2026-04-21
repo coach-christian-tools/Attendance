@@ -140,48 +140,50 @@ export default function GroupManager() {
         </div>
       )}
 
-      {GROUPS.map(groupName => {
-        const groupAthletes = athletes.filter(a => a.group === groupName).sort((a, b) => {
-          if (a.dob && b.dob) {
-            return new Date(a.dob).getTime() - new Date(b.dob).getTime();
-          }
-          if (a.dob) return -1;
-          if (b.dob) return 1;
-          return a.firstName.localeCompare(b.firstName);
-        });
-        
-        if (groupAthletes.length === 0) return null;
-        
-        const isExpanded = !!expandedGroups[groupName];
+      <div style={{ padding: '0.5rem' }}>
+        {GROUPS.map(groupName => {
+          const groupAthletes = athletes.filter(a => a.group === groupName).sort((a, b) => {
+            if (a.dob && b.dob) {
+              return new Date(a.dob).getTime() - new Date(b.dob).getTime();
+            }
+            if (a.dob) return -1;
+            if (b.dob) return 1;
+            return a.firstName.localeCompare(b.firstName);
+          });
+          
+          if (groupAthletes.length === 0) return null;
+          
+          const isExpanded = !!expandedGroups[groupName];
 
-        return (
-          <div key={groupName} className="mb-4">
-            <h3 
-              className="mb-2 text-secondary flex-between" 
-              style={{ color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}
-              onClick={() => toggleGroup(groupName)}
-            >
-              <span>{groupName} ({groupAthletes.length})</span>
-              {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-            </h3>
-            {isExpanded && (
-              <div style={{ marginTop: '0.5rem' }}>
-                {groupAthletes.map(athlete => (
-                  <div key={athlete.id} className="card flex-between" style={{ marginBottom: '0.5rem', padding: '0.75rem 1rem' }}>
-                    <div>
-                      <strong>{athlete.firstName} {athlete.lastName}</strong>
+          return (
+            <div key={groupName} className="mb-4">
+              <h3 
+                className="mb-2 text-secondary flex-between" 
+                style={{ color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => toggleGroup(groupName)}
+              >
+                <span>{groupName} ({groupAthletes.length})</span>
+                {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+              </h3>
+              {isExpanded && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  {groupAthletes.map(athlete => (
+                    <div key={athlete.id} className="card flex-between" style={{ marginBottom: '0.5rem', padding: '0.75rem 1rem' }}>
+                      <div>
+                        <strong>{athlete.firstName} {athlete.lastName}</strong>
+                      </div>
+                      <div>
+                        <button className="btn-icon" onClick={() => handleEdit(athlete)}><Edit2 size={16} /></button>
+                        <button className="btn-icon" onClick={() => handleDelete(athlete.id!)}><Trash2 size={16} color="var(--absent-color)" /></button>
+                      </div>
                     </div>
-                    <div>
-                      <button className="btn-icon" onClick={() => handleEdit(athlete)}><Edit2 size={16} /></button>
-                      <button className="btn-icon" onClick={() => handleDelete(athlete.id!)}><Trash2 size={16} color="var(--absent-color)" /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
