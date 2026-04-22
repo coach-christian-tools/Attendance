@@ -20,7 +20,7 @@ export default function Home({ error }: { error?: string }) {
 
   return (
     <div className="home-container" style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',

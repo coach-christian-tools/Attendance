@@ -94,9 +94,6 @@ export default function GroupManager() {
 
   return (
     <div>
-      <div className="flex-between mb-4">
-        <h2>Groups</h2>
-      </div>
 
       <button className="fab" onClick={() => setShowAddModal(true)} title="Add Athlete">
         <Plus size={24} />
@@ -173,7 +170,18 @@ export default function GroupManager() {
                 style={{ color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' }}
                 onClick={() => toggleGroup(groupName)}
               >
-                <span>{groupName} ({groupAthletes.length})</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem', flex: 1 }}>
+                  <span style={{ fontWeight: 600 }}>{groupName}</span>
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                    {groupAthletes.map(a => (
+                      <div 
+                        key={a.id} 
+                        style={{ width: 10, height: 10, backgroundColor: 'var(--accent-color)', borderRadius: 2, opacity: 0.7 }} 
+                        title={`${a.firstName} ${a.lastName}`} 
+                      />
+                    ))}
+                  </div>
+                </div>
                 {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
               </h3>
               {isExpanded && (

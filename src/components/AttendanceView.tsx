@@ -40,13 +40,19 @@ export default function AttendanceView() {
   }, []);
 
   useEffect(() => {
+    let active = true;
     const loadAttendance = async () => {
-      if (events.length === 0) return;
+      if (events.length === 0) {
+        if (active) setAllAttendance({});
+        return;
+      }
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       
       const results = await Promise.all(
         events.map(e => getAttendance(e.id, dateStr).then(data => ({ id: e.id, data })))
       );
+      
+      if (!active) return;
       
       const newAllAttendance: Record<string, Record<string, AttendanceStatus>> = {};
       results.forEach(r => {
@@ -55,6 +61,7 @@ export default function AttendanceView() {
       setAllAttendance(newAllAttendance);
     };
     loadAttendance();
+    return () => { active = false; };
   }, [events, selectedDate]);
 
   const attendance = selectedEventId ? (allAttendance[selectedEventId] || {}) : {};
@@ -119,61 +126,64 @@ export default function AttendanceView() {
 
   return (
     <div>
-      {/* Date Navigation */}
-      <div className="flex-between card">
-        <button className="btn-icon" onClick={() => handleDateChange(-1)}>
-          <ChevronLeft size={24} />
-        </button>
-        <div className="text-center" style={{ fontWeight: 600 }}>
-          {format(selectedDate, 'EEEE, MMM do')}
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-             {events.length} Event{events.length !== 1 && 's'}
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--bg-color)', paddingBottom: '0.5rem', paddingTop: '0.5rem', margin: '-0.5rem -0.5rem 0', paddingLeft: '0.5rem', paddingRight: '0.5rem' }}>
+        {/* Date Navigation */}
+        <div className="flex-between card" style={{ marginBottom: '0.5rem' }}>
+          <button className="btn-icon" onClick={() => handleDateChange(-1)}>
+            <ChevronLeft size={24} />
+          </button>
+          <div className="text-center" style={{ fontWeight: 600 }}>
+            {format(selectedDate, 'EEEE, MMM do')}
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+               {events.length} Event{events.length !== 1 && 's'}
+            </div>
           </div>
+          <button className="btn-icon" onClick={() => handleDateChange(1)}>
+            <ChevronRight size={24} />
+          </button>
         </div>
-        <button className="btn-icon" onClick={() => handleDateChange(1)}>
-          <ChevronRight size={24} />
-        </button>
-      </div>
 
-      {/* Events Selector */}
-      {loadingEvents ? (
-        <div className="text-center p-4">Loading events...</div>
-      ) : events.length === 0 ? (
-        <div className="card text-center text-secondary">No events found for this day.</div>
-      ) : (
-        <div className="event-list">
-          {events.map(event => {
-            return (
-              <button
-                key={event.id}
-                className={`card event-card ${selectedEventId === event.id ? 'active' : ''}`}
-                onClick={() => setSelectedEventId(event.id)}
-              >
-                {event.summary}
-              </button>
-            )
-          })}
-        </div>
-      )}
+        {/* Events Selector */}
+        {loadingEvents ? (
+          <div className="text-center p-4">Loading events...</div>
+        ) : events.length === 0 ? (
+          <div className="card text-center text-secondary mb-4">No events found for this day.</div>
+        ) : (
+          <div className="event-list">
+            {events.map(event => {
+              return (
+                <button
+                  key={event.id}
+                  className={`card event-card ${selectedEventId === event.id ? 'active' : ''}`}
+                  onClick={() => setSelectedEventId(event.id)}
+                >
+                  {event.summary}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {selectedEventId && isFullTeam && (
+          <div className="mb-4">
+            <select 
+              className="input-field" 
+              value={filterGroup} 
+              onChange={(e) => setFilterGroup(e.target.value as GroupType | 'All')}
+            >
+              <option value="All">All Groups (Full Team Event)</option>
+              {GROUPS.map(g => {
+                const size = athletes.filter(a => a.group === g).length;
+                return <option key={g} value={g}>{g} ({size})</option>;
+              })}
+            </select>
+          </div>
+        )}
+      </div>
 
       {/* Attendance Grid */}
       {selectedEventId && (
-        <>
-          {isFullTeam && (
-            <div className="mb-4">
-              <select 
-                className="input-field" 
-                value={filterGroup} 
-                onChange={(e) => setFilterGroup(e.target.value as GroupType | 'All')}
-              >
-                <option value="All">All Groups (Full Team Event)</option>
-                {GROUPS.map(g => {
-                  const size = athletes.filter(a => a.group === g).length;
-                  return <option key={g} value={g}>{g} ({size})</option>;
-                })}
-              </select>
-            </div>
-          )}
+        <div style={{ paddingBottom: '160px' }}>
 
           <div className="athlete-grid">
             {sortedAthletes.map(athlete => {
@@ -222,7 +232,7 @@ export default function AttendanceView() {
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );
