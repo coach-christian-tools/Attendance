@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { Calendar, Users, RefreshCw } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import AttendanceView from '../components/AttendanceView';
 import GroupManager from '../components/GroupManager';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'attendance' | 'groups'>('attendance');
-  const navigate = useNavigate();
 
   return (
     <div className="app-container">
