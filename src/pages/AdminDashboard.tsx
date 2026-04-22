@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Users, Home as HomeIcon } from 'lucide-react';
+import { Calendar, Users, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AttendanceView from '../components/AttendanceView';
 import GroupManager from '../components/GroupManager';
@@ -15,13 +15,7 @@ export default function AdminDashboard() {
       </main>
 
       <nav className="bottom-nav">
-        <button 
-          className="nav-item"
-          onClick={() => navigate('/')}
-        >
-          <HomeIcon size={24} />
-          <span>Home</span>
-        </button>
+        {/* Home button removed for admin view */}
         <button 
           className={`nav-item ${activeTab === 'attendance' ? 'active' : ''}`}
           onClick={() => setActiveTab('attendance')}
@@ -35,6 +29,13 @@ export default function AdminDashboard() {
         >
           <Users size={24} />
           <span>Groups</span>
+        </button>
+        <button 
+          className="nav-item"
+          onClick={() => window.dispatchEvent(new CustomEvent('refreshData'))}
+        >
+          <RefreshCw size={24} />
+          <span>Refresh</span>
         </button>
       </nav>
     </div>

@@ -35,6 +35,9 @@ export default function GroupManager() {
 
   useEffect(() => {
     loadAthletes();
+    const handleRefresh = () => loadAthletes();
+    window.addEventListener('refreshData', handleRefresh);
+    return () => window.removeEventListener('refreshData', handleRefresh);
   }, []);
 
   const resetForm = () => {
@@ -100,7 +103,7 @@ export default function GroupManager() {
       </button>
 
       {showAddModal && (
-        <div className="card mb-4" style={{ border: '1px solid var(--unmarked-color)', boxShadow: 'var(--shadow-md)' }}>
+        <div className="card mb-4" style={{ border: '1px solid var(--unmarked-color)', boxShadow: 'var(--shadow-md)', padding: '1.5rem' }}>
           <div className="flex-between mb-4">
             <h3>{editingId ? 'Edit Athlete' : 'New Athlete'}</h3>
             <button className="btn-icon" onClick={resetForm}><X size={20} /></button>
@@ -165,27 +168,29 @@ export default function GroupManager() {
 
           return (
             <div key={groupName} className="mb-4">
-              <h3 
-                className="mb-2 flex-between" 
-                style={{ color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' }}
+              <div 
+                className="card flex-between" 
+                style={{ cursor: 'pointer', userSelect: 'none', alignItems: 'flex-start', padding: '1rem' }}
                 onClick={() => toggleGroup(groupName)}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem', flex: 1 }}>
-                  <span style={{ fontWeight: 600 }}>{groupName}</span>
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', maxWidth: '136px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                  <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '1.1rem' }}>{groupName}</h3>
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                     {groupAthletes.map(a => (
                       <div 
                         key={a.id} 
-                        style={{ width: 10, height: 10, backgroundColor: 'var(--accent-color)', borderRadius: 2, opacity: 0.7 }} 
+                        style={{ width: 12, height: 12, backgroundColor: 'var(--accent-color)', borderRadius: 3, opacity: 0.7 }} 
                         title={`${a.firstName} ${a.lastName}`} 
                       />
                     ))}
                   </div>
                 </div>
-                {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-              </h3>
+                <div style={{ padding: '0.25rem' }}>
+                  {isExpanded ? <ChevronDown size={20} color="var(--text-secondary)" /> : <ChevronRight size={20} color="var(--text-secondary)" />}
+                </div>
+              </div>
               {isExpanded && (
-                <div className="athlete-grid" style={{ marginTop: '0.5rem' }}>
+                <div className="athlete-grid" style={{ marginTop: '0.75rem' }}>
                   {groupAthletes.map(athlete => {
                     let ageStr = '';
                     if (athlete.dob) {

@@ -3,6 +3,7 @@ import { startOfDay, endOfDay } from 'date-fns';
 export interface GCalEvent {
   id: string;
   summary: string;
+  displaySummary?: string;
   description?: string;
   start: { dateTime?: string; date?: string };
   end: { dateTime?: string; date?: string };

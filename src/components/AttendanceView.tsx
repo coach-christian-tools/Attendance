@@ -20,9 +20,28 @@ export default function AttendanceView() {
     const loadEvents = async () => {
       setLoadingEvents(true);
       const fetchedEvents = await fetchEventsForDate(selectedDate);
-      setEvents(fetchedEvents);
-      if (fetchedEvents.length > 0) {
-        setSelectedEventId(fetchedEvents[0].id);
+
+      const counts: Record<string, number> = {};
+      fetchedEvents.forEach(e => {
+        const name = e.summary.trim();
+        counts[name] = (counts[name] || 0) + 1;
+      });
+
+      const seen: Record<string, number> = {};
+      const processedEvents = fetchedEvents.map(e => {
+        const name = e.summary.trim();
+        let displaySummary = name;
+        if (counts[name] > 1) {
+          seen[name] = (seen[name] || 0) + 1;
+          const suffix = seen[name] === 1 ? ' AM' : ' PM';
+          displaySummary = `${name}${suffix}`;
+        }
+        return { ...e, displaySummary };
+      });
+
+      setEvents(processedEvents);
+      if (processedEvents.length > 0) {
+        setSelectedEventId(processedEvents[0].id);
       } else {
         setSelectedEventId(null);
       }
@@ -88,6 +107,27 @@ export default function AttendanceView() {
     await saveAttendance(selectedEventId, dateStr, newAttendance);
   };
 
+  const refreshAttendance = async () => {
+    if (events.length === 0) return;
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const results = await Promise.all(
+      events.map(e => getAttendance(e.id, dateStr).then(data => ({ id: e.id, data })))
+    );
+    const newAllAttendance: Record<string, Record<string, AttendanceStatus>> = {};
+    results.forEach(r => {
+      newAllAttendance[r.id] = r.data;
+    });
+    setAllAttendance(newAllAttendance);
+  };
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      refreshAttendance();
+    };
+    window.addEventListener('refreshData', handleRefresh);
+    return () => window.removeEventListener('refreshData', handleRefresh);
+  }, [events, selectedDate]);
+
   const selectedEvent = events.find(e => e.id === selectedEventId);
   const isFullTeam = selectedEvent ? !GROUPS.some(g => {
     const searchStr = g === 'Rec Team' ? 'Rec' : g;
@@ -126,64 +166,27 @@ export default function AttendanceView() {
 
   return (
     <div>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, backgroundColor: 'var(--bg-color)', paddingTop: '0.5rem', paddingLeft: '0.5rem', paddingRight: '0.5rem' }}>
-        {/* Date Navigation */}
-        <div className="flex-between card" style={{ marginBottom: '0.5rem' }}>
-          <button className="btn-icon" onClick={() => handleDateChange(-1)}>
-            <ChevronLeft size={24} />
-          </button>
-          <div className="text-center" style={{ fontWeight: 600 }}>
-            {format(selectedDate, 'EEEE, MMM do')}
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              {events.length} Event{events.length !== 1 && 's'}
-            </div>
+      {/* Floating Stats at the top */}
+      {selectedEventId && sortedAthletes.length > 0 && (
+        <div className="floating-stats">
+          <div className="stat-item">
+            <div className="stat-dot present" title="Present"></div>
+            <span>{presentCount}</span>
           </div>
-          <button className="btn-icon" onClick={() => handleDateChange(1)}>
-            <ChevronRight size={24} />
-          </button>
+          <div className="stat-item">
+            <div className="stat-dot absent" title="Absent"></div>
+            <span>{absentCount}</span>
+          </div>
+          <div className="stat-item">
+            <div className="stat-dot unmarked" title="Undeclared"></div>
+            <span>{unmarkedCount}</span>
+          </div>
         </div>
-
-        {/* Events Selector */}
-        {loadingEvents ? (
-          <div className="text-center p-4">Loading events...</div>
-        ) : events.length === 0 ? (
-          <div className="card text-center text-secondary">No events found for this day.</div>
-        ) : (
-          <div className="event-list">
-            {events.map(event => {
-              return (
-                <button
-                  key={event.id}
-                  className={`card event-card ${selectedEventId === event.id ? 'active' : ''}`}
-                  onClick={() => setSelectedEventId(event.id)}
-                >
-                  {event.summary}
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        {selectedEventId && isFullTeam && (
-          <div className="mb-4">
-            <select
-              className="input-field"
-              value={filterGroup}
-              onChange={(e) => setFilterGroup(e.target.value as GroupType | 'All')}
-            >
-              <option value="All">All Groups (Full Team Event)</option>
-              {GROUPS.map(g => {
-                const size = athletes.filter(a => a.group === g).length;
-                return <option key={g} value={g}>{g} ({size})</option>;
-              })}
-            </select>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Attendance Grid */}
       {selectedEventId && (
-        <div style={{ paddingTop: '120px', paddingBottom: '160px' }}>
+        <div style={{ paddingTop: '60px', paddingBottom: '140px' }}>
 
           <div className="athlete-grid">
             {sortedAthletes.map(athlete => {
@@ -216,24 +219,63 @@ export default function AttendanceView() {
             </div>
           )}
 
-          {sortedAthletes.length > 0 && (
-            <div className="floating-stats">
-              <div className="stat-item">
-                <div className="stat-dot present" title="Present"></div>
-                <span>{presentCount}</span>
-              </div>
-              <div className="stat-item">
-                <div className="stat-dot absent" title="Absent"></div>
-                <span>{absentCount}</span>
-              </div>
-              <div className="stat-item">
-                <div className="stat-dot unmarked" title="Undeclared"></div>
-                <span>{unmarkedCount}</span>
-              </div>
-            </div>
-          )}
         </div>
       )}
+
+      <div className="bottom-controls">
+        {selectedEventId && isFullTeam && (
+          <div className="mb-2">
+            <select
+              className="input-field"
+              value={filterGroup}
+              onChange={(e) => setFilterGroup(e.target.value as GroupType | 'All')}
+            >
+              <option value="All">All Groups (Full Team Event)</option>
+              {GROUPS.map(g => {
+                const size = athletes.filter(a => a.group === g).length;
+                return <option key={g} value={g}>{g} ({size})</option>;
+              })}
+            </select>
+          </div>
+        )}
+
+        {/* Events Selector */}
+        {loadingEvents ? (
+          <div className="text-center p-2">Loading events...</div>
+        ) : events.length === 0 ? (
+          <div className="card text-center text-secondary mb-2">No events found.</div>
+        ) : (
+          <div className="event-list" style={{ marginBottom: '0.5rem', paddingBottom: '0.25rem' }}>
+            {events.map(event => (
+              <button
+                key={event.id}
+                className={`card event-card ${selectedEventId === event.id ? 'active' : ''}`}
+                onClick={() => setSelectedEventId(event.id)}
+              >
+                {event.displaySummary || event.summary}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Date Navigation */}
+        <div className="flex-between card" style={{ marginBottom: '0.5rem' }}>
+          <button className="btn-icon" onClick={() => handleDateChange(-1)}>
+            <ChevronLeft size={24} />
+          </button>
+          <div className="text-center" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div>
+              {format(selectedDate, 'EEEE, MMM do')}
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
+                {events.length} Event{events.length !== 1 && 's'}
+              </div>
+            </div>
+          </div>
+          <button className="btn-icon" onClick={() => handleDateChange(1)}>
+            <ChevronRight size={24} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
