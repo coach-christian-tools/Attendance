@@ -100,7 +100,7 @@ export default function GroupManager() {
       </button>
 
       {showAddModal && (
-        <div className="card mb-4" style={{ border: '2px solid var(--accent-color)' }}>
+        <div className="card mb-4" style={{ border: '1px solid var(--unmarked-color)', boxShadow: 'var(--shadow-md)' }}>
           <div className="flex-between mb-4">
             <h3>{editingId ? 'Edit Athlete' : 'New Athlete'}</h3>
             <button className="btn-icon" onClick={resetForm}><X size={20} /></button>
@@ -172,7 +172,7 @@ export default function GroupManager() {
               >
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem', flex: 1 }}>
                   <span style={{ fontWeight: 600 }}>{groupName}</span>
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', maxWidth: '136px' }}>
                     {groupAthletes.map(a => (
                       <div 
                         key={a.id} 

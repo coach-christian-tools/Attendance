@@ -9,13 +9,13 @@ export default function AttendanceView() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [events, setEvents] = useState<GCalEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
-  
+
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [allAttendance, setAllAttendance] = useState<Record<string, Record<string, AttendanceStatus>>>({});
-  
+
   const [filterGroup, setFilterGroup] = useState<GroupType | 'All'>('All');
-  
+
   useEffect(() => {
     const loadEvents = async () => {
       setLoadingEvents(true);
@@ -47,13 +47,13 @@ export default function AttendanceView() {
         return;
       }
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      
+
       const results = await Promise.all(
         events.map(e => getAttendance(e.id, dateStr).then(data => ({ id: e.id, data })))
       );
-      
+
       if (!active) return;
-      
+
       const newAllAttendance: Record<string, Record<string, AttendanceStatus>> = {};
       results.forEach(r => {
         newAllAttendance[r.id] = r.data;
@@ -76,13 +76,13 @@ export default function AttendanceView() {
     let next: AttendanceStatus = 'present';
     if (current === 'present') next = 'absent';
     else if (current === 'absent') next = 'unmarked';
-    
+
     const newAttendance = { ...attendance, [athleteId]: next };
     setAllAttendance(prev => ({
       ...prev,
       [selectedEventId]: newAttendance
     }));
-    
+
     // Save to Firebase
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
     await saveAttendance(selectedEventId, dateStr, newAttendance);
@@ -93,7 +93,7 @@ export default function AttendanceView() {
     const searchStr = g === 'Rec Team' ? 'Rec' : g;
     return selectedEvent.summary.toLowerCase().includes(searchStr.toLowerCase());
   }) : false;
-  
+
   // Filter and sort athletes
   let displayAthletes = athletes;
   if (selectedEvent) {
@@ -110,7 +110,7 @@ export default function AttendanceView() {
       }
     }
   }
-  
+
   const sortedAthletes = [...displayAthletes].sort((a, b) => {
     if (a.dob && b.dob) {
       return new Date(a.dob).getTime() - new Date(b.dob).getTime();
@@ -126,7 +126,7 @@ export default function AttendanceView() {
 
   return (
     <div>
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'var(--bg-color)', paddingBottom: '0.5rem', paddingTop: '0.5rem', margin: '-0.5rem -0.5rem 0', paddingLeft: '0.5rem', paddingRight: '0.5rem' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, backgroundColor: 'var(--bg-color)', paddingTop: '0.5rem', paddingLeft: '0.5rem', paddingRight: '0.5rem' }}>
         {/* Date Navigation */}
         <div className="flex-between card" style={{ marginBottom: '0.5rem' }}>
           <button className="btn-icon" onClick={() => handleDateChange(-1)}>
@@ -135,7 +135,7 @@ export default function AttendanceView() {
           <div className="text-center" style={{ fontWeight: 600 }}>
             {format(selectedDate, 'EEEE, MMM do')}
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-               {events.length} Event{events.length !== 1 && 's'}
+              {events.length} Event{events.length !== 1 && 's'}
             </div>
           </div>
           <button className="btn-icon" onClick={() => handleDateChange(1)}>
@@ -147,7 +147,7 @@ export default function AttendanceView() {
         {loadingEvents ? (
           <div className="text-center p-4">Loading events...</div>
         ) : events.length === 0 ? (
-          <div className="card text-center text-secondary mb-4">No events found for this day.</div>
+          <div className="card text-center text-secondary">No events found for this day.</div>
         ) : (
           <div className="event-list">
             {events.map(event => {
@@ -166,9 +166,9 @@ export default function AttendanceView() {
 
         {selectedEventId && isFullTeam && (
           <div className="mb-4">
-            <select 
-              className="input-field" 
-              value={filterGroup} 
+            <select
+              className="input-field"
+              value={filterGroup}
               onChange={(e) => setFilterGroup(e.target.value as GroupType | 'All')}
             >
               <option value="All">All Groups (Full Team Event)</option>
@@ -183,7 +183,7 @@ export default function AttendanceView() {
 
       {/* Attendance Grid */}
       {selectedEventId && (
-        <div style={{ paddingBottom: '160px' }}>
+        <div style={{ paddingTop: '120px', paddingBottom: '160px' }}>
 
           <div className="athlete-grid">
             {sortedAthletes.map(athlete => {
@@ -196,8 +196,8 @@ export default function AttendanceView() {
                 }
               }
               return (
-                <div 
-                  key={athlete.id} 
+                <div
+                  key={athlete.id}
                   className={`athlete-card ${status}`}
                   onClick={() => handleAttendanceTap(athlete.id!)}
                 >
