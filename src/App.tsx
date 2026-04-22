@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from './firebase';
-import Login from './pages/Login';
+import Home from './pages/Home';
 import AdminDashboard from './pages/AdminDashboard';
 import './index.css';
 
@@ -29,12 +29,12 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route 
-          path="/login" 
-          element={!user ? <Login /> : (isAuthorized ? <Navigate to="/" /> : <Login error="Unauthorized domain." />)} 
+          path="/" 
+          element={<Home error={user && !isAuthorized ? "Unauthorized domain." : undefined} />} 
         />
         <Route 
-          path="/" 
-          element={isAuthorized ? <AdminDashboard /> : <Navigate to="/login" />} 
+          path="/admin" 
+          element={isAuthorized ? <AdminDashboard /> : <Navigate to="/" />} 
         />
       </Routes>
     </BrowserRouter>

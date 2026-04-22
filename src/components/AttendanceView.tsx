@@ -12,7 +12,7 @@ export default function AttendanceView() {
   
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
-  const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
+  const [allAttendance, setAllAttendance] = useState<Record<string, Record<string, AttendanceStatus>>>({});
   
   const [filterGroup, setFilterGroup] = useState<GroupType | 'All'>('All');
   
@@ -41,13 +41,23 @@ export default function AttendanceView() {
 
   useEffect(() => {
     const loadAttendance = async () => {
-      if (!selectedEventId) return;
+      if (events.length === 0) return;
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      const data = await getAttendance(selectedEventId, dateStr);
-      setAttendance(data);
+      
+      const results = await Promise.all(
+        events.map(e => getAttendance(e.id, dateStr).then(data => ({ id: e.id, data })))
+      );
+      
+      const newAllAttendance: Record<string, Record<string, AttendanceStatus>> = {};
+      results.forEach(r => {
+        newAllAttendance[r.id] = r.data;
+      });
+      setAllAttendance(newAllAttendance);
     };
     loadAttendance();
-  }, [selectedEventId, selectedDate]);
+  }, [events, selectedDate]);
+
+  const attendance = selectedEventId ? (allAttendance[selectedEventId] || {}) : {};
 
   const handleDateChange = (days: number) => {
     setSelectedDate(prev => addDays(prev, days));
@@ -61,7 +71,10 @@ export default function AttendanceView() {
     else if (current === 'absent') next = 'unmarked';
     
     const newAttendance = { ...attendance, [athleteId]: next };
-    setAttendance(newAttendance);
+    setAllAttendance(prev => ({
+      ...prev,
+      [selectedEventId]: newAttendance
+    }));
     
     // Save to Firebase
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
@@ -99,6 +112,10 @@ export default function AttendanceView() {
     if (b.dob) return 1;
     return a.firstName.localeCompare(b.firstName);
   });
+
+  const presentCount = sortedAthletes.filter(a => (attendance[a.id!] || 'unmarked') === 'present').length;
+  const absentCount = sortedAthletes.filter(a => (attendance[a.id!] || 'unmarked') === 'absent').length;
+  const unmarkedCount = sortedAthletes.filter(a => (attendance[a.id!] || 'unmarked') === 'unmarked').length;
 
   return (
     <div>
@@ -153,7 +170,10 @@ export default function AttendanceView() {
                 onChange={(e) => setFilterGroup(e.target.value as GroupType | 'All')}
               >
                 <option value="All">All Groups (Full Team Event)</option>
-                {GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
+                {GROUPS.map(g => {
+                  const size = athletes.filter(a => a.group === g).length;
+                  return <option key={g} value={g}>{g} ({size})</option>;
+                })}
               </select>
             </div>
           )}
@@ -186,6 +206,23 @@ export default function AttendanceView() {
           {sortedAthletes.length === 0 && (
             <div className="text-center text-secondary p-4">
               No athletes found for this group.
+            </div>
+          )}
+
+          {sortedAthletes.length > 0 && (
+            <div className="floating-stats">
+              <div className="stat-item">
+                <div className="stat-dot present" title="Present"></div>
+                <span>{presentCount}</span>
+              </div>
+              <div className="stat-item">
+                <div className="stat-dot absent" title="Absent"></div>
+                <span>{absentCount}</span>
+              </div>
+              <div className="stat-item">
+                <div className="stat-dot unmarked" title="Undeclared"></div>
+                <span>{unmarkedCount}</span>
+              </div>
             </div>
           )}
         </>

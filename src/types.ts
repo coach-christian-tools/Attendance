@@ -1,6 +1,6 @@
-export type GroupType = 'Splash' | 'Pre-Team' | 'Littles' | 'Age Groupers' | 'Seniors' | 'Masters' | 'Rec Team';
+export type GroupType = 'Rec Team' | 'Splash' | 'Pre-Team' | 'Littles' | 'Age Groupers' | 'Seniors' | 'Masters';
 
-export const GROUPS: GroupType[] = ['Splash', 'Pre-Team', 'Littles', 'Age Groupers', 'Seniors', 'Masters', 'Rec Team'];
+export const GROUPS: GroupType[] = ['Rec Team', 'Splash', 'Pre-Team', 'Littles', 'Age Groupers', 'Seniors', 'Masters'];
 
 export interface Athlete {
   id?: string;

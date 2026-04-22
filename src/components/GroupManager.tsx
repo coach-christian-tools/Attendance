@@ -96,10 +96,11 @@ export default function GroupManager() {
     <div>
       <div className="flex-between mb-4">
         <h2>Groups</h2>
-        <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-          <Plus size={18} /> Add
-        </button>
       </div>
+
+      <button className="fab" onClick={() => setShowAddModal(true)} title="Add Athlete">
+        <Plus size={24} />
+      </button>
 
       {showAddModal && (
         <div className="card mb-4" style={{ border: '2px solid var(--accent-color)' }}>
@@ -135,7 +136,17 @@ export default function GroupManager() {
                 <option value="O">Other</option>
               </select>
             </div>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save</button>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+              <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save</button>
+              {editingId && (
+                <button type="button" className="btn" style={{ flex: 1, backgroundColor: 'var(--absent-color)', color: 'white' }} onClick={() => {
+                  handleDelete(editingId);
+                  resetForm();
+                }}>
+                  Delete
+                </button>
+              )}
+            </div>
           </form>
         </div>
       )}
@@ -158,26 +169,38 @@ export default function GroupManager() {
           return (
             <div key={groupName} className="mb-4">
               <h3 
-                className="mb-2 text-secondary flex-between" 
-                style={{ color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}
+                className="mb-2 flex-between" 
+                style={{ color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' }}
                 onClick={() => toggleGroup(groupName)}
               >
                 <span>{groupName} ({groupAthletes.length})</span>
                 {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
               </h3>
               {isExpanded && (
-                <div style={{ marginTop: '0.5rem' }}>
-                  {groupAthletes.map(athlete => (
-                    <div key={athlete.id} className="card flex-between" style={{ marginBottom: '0.5rem', padding: '0.75rem 1rem' }}>
-                      <div>
-                        <strong>{athlete.firstName} {athlete.lastName}</strong>
+                <div className="athlete-grid" style={{ marginTop: '0.5rem' }}>
+                  {groupAthletes.map(athlete => {
+                    let ageStr = '';
+                    if (athlete.dob) {
+                      const parsedDate = new Date(athlete.dob);
+                      if (!isNaN(parsedDate.getTime())) {
+                        const diffMs = Date.now() - parsedDate.getTime();
+                        const ageDt = new Date(diffMs); 
+                        ageStr = `${Math.abs(ageDt.getUTCFullYear() - 1970)}${athlete.gender ? athlete.gender : ''}`;
+                      }
+                    }
+                    return (
+                      <div 
+                        key={athlete.id} 
+                        className="athlete-card"
+                        onClick={() => handleEdit(athlete)}
+                      >
+                        <div className="athlete-name">
+                          {athlete.firstName} {athlete.lastName ? athlete.lastName.charAt(0) + '.' : ''}
+                          {ageStr && <span style={{ marginLeft: '0.25rem', fontSize: '0.75rem', opacity: 0.8 }}>({ageStr})</span>}
+                        </div>
                       </div>
-                      <div>
-                        <button className="btn-icon" onClick={() => handleEdit(athlete)}><Edit2 size={16} /></button>
-                        <button className="btn-icon" onClick={() => handleDelete(athlete.id!)}><Trash2 size={16} color="var(--absent-color)" /></button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
