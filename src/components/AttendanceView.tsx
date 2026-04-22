@@ -143,16 +143,13 @@ export default function AttendanceView() {
       ) : (
         <div className="event-list">
           {events.map(event => {
-            const time = event.start.dateTime 
-              ? format(new Date(event.start.dateTime), 'h:mm a') 
-              : 'All Day';
             return (
               <button
                 key={event.id}
                 className={`card event-card ${selectedEventId === event.id ? 'active' : ''}`}
                 onClick={() => setSelectedEventId(event.id)}
               >
-                {time} - {event.summary}
+                {event.summary}
               </button>
             )
           })}

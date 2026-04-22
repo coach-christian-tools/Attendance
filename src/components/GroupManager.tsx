@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { GROUPS, type Athlete, type GroupType } from '../types';
 import { getAthletes, addAthlete, updateAthlete, deleteAthlete } from '../services/db';
-import { Edit2, Trash2, Plus, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, X, ChevronDown, ChevronRight } from 'lucide-react';
 
 export default function GroupManager() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
