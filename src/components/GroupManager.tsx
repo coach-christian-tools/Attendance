@@ -1,21 +1,13 @@
 import { useState, useEffect } from 'react';
 import { GROUPS, type Athlete, type GroupType } from '../types';
-import { getAthletes, addAthlete, updateAthlete, deleteAthlete, triggerSync } from '../services/db';
-import { Plus, X, ChevronDown, ChevronRight, RefreshCw, Table2, LayoutGrid, Search, Filter } from 'lucide-react';
+import { getAthletes, updateAthlete, deleteAthlete, triggerSync } from '../services/db';
+import { X, ChevronDown, ChevronRight, RefreshCw, Table2, LayoutGrid, Search, Filter } from 'lucide-react';
 
 export default function GroupManager() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [showAddModal, setShowAddModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-
-  // Form State (Create Only)
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [group, setGroup] = useState<GroupType>('Splash');
-  const [dob, setDob] = useState('');
-  const [gender, setGender] = useState('');
 
   // UI State
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
@@ -53,14 +45,7 @@ export default function GroupManager() {
     return () => window.removeEventListener('refreshData', handleRefresh);
   }, []);
 
-  const resetForm = () => {
-    setFirstName('');
-    setLastName('');
-    setGroup('Splash');
-    setDob('');
-    setGender('');
-    setShowAddModal(false);
-  };
+
 
   const handleSync = async () => {
     if (!confirm('WARNING: This shouldn\'t be done unless a change was made in TeamUnify. Are you sure you want to proceed?')) {
@@ -77,20 +62,6 @@ export default function GroupManager() {
       alert(msg);
     } finally {
       setIsSyncing(false);
-    }
-  };
-
-  const handleSaveNew = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!firstName || !lastName) return;
-
-    try {
-      await addAthlete({ firstName, lastName, group, dob, gender });
-      resetForm();
-      loadAthletes();
-    } catch (err) {
-      console.error(err);
-      alert('Error saving athlete');
     }
   };
 
@@ -132,47 +103,7 @@ export default function GroupManager() {
 
   return (
     <div style={{ paddingBottom: '4rem' }}>
-      {/* Create Modal */}
-      {showAddModal && (
-        <div className="card mb-4" style={{ border: '1px solid var(--unmarked-color)', boxShadow: 'var(--shadow-md)', padding: '1.5rem' }}>
-          <div className="flex-between mb-4">
-            <h3>New Athlete</h3>
-            <button className="btn-icon" onClick={resetForm}><X size={20} /></button>
-          </div>
-          <form onSubmit={handleSaveNew}>
-            <div className="input-group">
-              <label className="input-label">First Name</label>
-              <input required className="input-field" value={firstName} onChange={e => setFirstName(e.target.value)} />
-            </div>
-            <div className="input-group">
-              <label className="input-label">Last Name</label>
-              <input required className="input-field" value={lastName} onChange={e => setLastName(e.target.value)} />
-            </div>
-            <div className="input-group">
-              <label className="input-label">Group</label>
-              <select className="input-field" value={group} onChange={e => setGroup(e.target.value as GroupType)}>
-                {GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-            </div>
-            <div className="input-group">
-              <label className="input-label">Birthday (optional)</label>
-              <input type="date" className="input-field" value={dob} onChange={e => setDob(e.target.value)} />
-            </div>
-            <div className="input-group">
-              <label className="input-label">Gender (optional)</label>
-              <select className="input-field" value={gender} onChange={e => setGender(e.target.value)}>
-                <option value="">Select...</option>
-                <option value="M">Male</option>
-                <option value="F">Female</option>
-                <option value="O">Other</option>
-              </select>
-            </div>
-            <div style={{ marginTop: '1rem' }}>
-              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save Athlete</button>
-            </div>
-          </form>
-        </div>
-      )}
+
 
       {/* Main Content */}
       <div style={{ padding: '0.5rem' }}>
@@ -411,9 +342,7 @@ export default function GroupManager() {
         </button>
       </div>
 
-      <button className="fab" onClick={() => setShowAddModal(true)} title="Add Athlete" style={{ bottom: 'calc(9rem + env(safe-area-inset-bottom))' }}>
-        <Plus size={24} />
-      </button>
+
 
     </div>
   );
