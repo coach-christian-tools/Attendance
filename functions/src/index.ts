@@ -4,11 +4,15 @@ import { GoogleAuth } from 'google-auth-library';
 
 admin.initializeApp();
 
-export const triggerTeamUnifySync = functions.https.onCall({ cors: true }, async (request) => {
+export const triggerTeamUnifySync = functions.firestore.onDocumentCreated('sync_requests/{docId}', async (event) => {
+  const snapshot = event.data;
+  if (!snapshot) return;
+
   const db = admin.firestore();
   const syncLockRef = db.collection('settings').doc('syncLock');
 
   try {
+    let shouldSync = false;
     await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(syncLockRef);
       const now = new Date();
@@ -18,18 +22,23 @@ export const triggerTeamUnifySync = functions.https.onCall({ cors: true }, async
       if (doc.exists) {
         const data = doc.data();
         if (data?.lastSyncDate === todayString) {
-          throw new functions.https.HttpsError(
-            'resource-exhausted',
-            'TeamUnify sync has already been run today. Please wait until tomorrow.'
-          );
+          // Already synced today, update the request document and abort
+          transaction.update(snapshot.ref, { status: 'failed', error: 'TeamUnify sync has already been run today.' });
+          return;
         }
       }
 
+      shouldSync = true;
       transaction.set(syncLockRef, { 
         lastSyncDate: todayString,
         lastSyncTimestamp: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     });
+
+    if (!shouldSync) return;
+
+    // Update status to processing
+    await snapshot.ref.update({ status: 'processing' });
 
     const targetUrl = 'https://teamunify-sync-448467347068.us-central1.run.app/sync';
     const auth = new GoogleAuth();
@@ -37,14 +46,13 @@ export const triggerTeamUnifySync = functions.https.onCall({ cors: true }, async
     
     // Attempt the POST request
     const res = await client.request({ url: targetUrl, method: 'POST' });
-    return { success: true, message: 'Sync triggered successfully.', status: res.status };
+    
+    // Update status to success
+    await snapshot.ref.update({ status: 'success', statusCode: res.status });
     
   } catch (error: any) {
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
     console.error('Sync Error:', error);
-    throw new functions.https.HttpsError('internal', error.message || 'An error occurred during sync.');
+    await snapshot.ref.update({ status: 'failed', error: error.message || 'An error occurred during sync.' });
   }
 });
 

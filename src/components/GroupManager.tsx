@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { GROUPS, type Athlete, type GroupType } from '../types';
-import { getAthletes, updateAthlete, deleteAthlete, triggerSync } from '../services/db';
-import { X, ChevronDown, ChevronRight, RefreshCw, Table2, LayoutGrid, Search, Filter } from 'lucide-react';
+import { getAthletes, updateAthlete, deleteAthlete } from '../services/db';
+import { X, ChevronDown, ChevronRight, Table2, LayoutGrid, Search, Filter } from 'lucide-react';
 
 export default function GroupManager() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  const [isSyncing, setIsSyncing] = useState(false);
 
   // UI State
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
@@ -44,26 +42,6 @@ export default function GroupManager() {
     window.addEventListener('refreshData', handleRefresh);
     return () => window.removeEventListener('refreshData', handleRefresh);
   }, []);
-
-
-
-  const handleSync = async () => {
-    if (!confirm('WARNING: This shouldn\'t be done unless a change was made in TeamUnify. Are you sure you want to proceed?')) {
-      return;
-    }
-    setIsSyncing(true);
-    try {
-      await triggerSync();
-      alert('TeamUnify sync triggered successfully! The background job will take a few moments to finish.');
-      setTimeout(loadAthletes, 5000);
-    } catch (e: any) {
-      console.error(e);
-      const msg = e.message || 'Error triggering sync.';
-      alert(msg);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   const openAthleteDetails = (athlete: Athlete) => {
     setSelectedAthlete(athlete);
@@ -330,15 +308,6 @@ export default function GroupManager() {
           style={{ flex: 1, border: '1px solid var(--unmarked-color)', background: 'transparent', color: 'var(--text-primary)' }}
         >
           {viewMode === 'grid' ? <><Table2 size={18} /> Table View</> : <><LayoutGrid size={18} /> Grid View</>}
-        </button>
-        <button 
-          className="btn" 
-          onClick={handleSync} 
-          disabled={isSyncing}
-          style={{ flex: 1, border: '1px solid var(--unmarked-color)', background: 'transparent', color: 'var(--text-secondary)' }}
-        >
-          <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
-          {isSyncing ? 'Syncing...' : 'Sync Data'}
         </button>
       </div>
 

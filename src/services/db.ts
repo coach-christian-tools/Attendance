@@ -1,5 +1,4 @@
-import { collection, doc, getDocs, getDoc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { collection, doc, getDocs, getDoc, setDoc, deleteDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Athlete, AttendanceRecord, AttendanceStatus } from '../types';
 
@@ -49,8 +48,31 @@ export const getAllAttendance = async (): Promise<AttendanceRecord[]> => {
 };
 
 export const triggerSync = async (): Promise<any> => {
-  const functions = getFunctions(db.app);
-  const syncFunction = httpsCallable(functions, 'triggerTeamUnifySync');
-  const result = await syncFunction();
-  return result.data;
+  const syncReqsCol = collection(db, 'sync_requests');
+  const newDocRef = doc(syncReqsCol);
+  
+  // Create the request document
+  await setDoc(newDocRef, {
+    status: 'pending'
+  });
+
+  // Listen for the cloud function to update the status
+  return new Promise((resolve, reject) => {
+    const unsubscribe = onSnapshot(newDocRef, (docSnap) => {
+      const data = docSnap.data();
+      if (data?.status === 'success') {
+        unsubscribe();
+        resolve({ success: true, message: 'Sync completed successfully.' });
+      } else if (data?.status === 'failed') {
+        unsubscribe();
+        reject(new Error(data?.error || 'TeamUnify sync failed.'));
+      }
+    });
+    
+    // Safety timeout (2 minutes)
+    setTimeout(() => {
+      unsubscribe();
+      reject(new Error('Sync request timed out. Check the logs or try again later.'));
+    }, 120000);
+  });
 };
