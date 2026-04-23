@@ -1,4 +1,5 @@
 import { collection, doc, getDocs, getDoc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../firebase';
 import type { Athlete, AttendanceRecord, AttendanceStatus } from '../types';
 
@@ -40,4 +41,16 @@ export const saveAttendance = async (eventId: string, date: string, records: Rec
   const docId = `${eventId}_${date}`;
   const docRef = doc(attendanceCol, docId);
   await setDoc(docRef, { eventId, date, records }, { merge: true });
+};
+
+export const getAllAttendance = async (): Promise<AttendanceRecord[]> => {
+  const snapshot = await getDocs(attendanceCol);
+  return snapshot.docs.map(d => d.data() as AttendanceRecord);
+};
+
+export const triggerSync = async (): Promise<any> => {
+  const functions = getFunctions(db.app);
+  const syncFunction = httpsCallable(functions, 'triggerTeamUnifySync');
+  const result = await syncFunction();
+  return result.data;
 };

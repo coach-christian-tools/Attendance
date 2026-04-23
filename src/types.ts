@@ -1,6 +1,6 @@
-export type GroupType = 'Rec Team' | 'Splash' | 'Pre-Team' | 'Littles' | 'Age Groupers' | 'Seniors' | 'Masters';
+export type GroupType = 'Rec Team' | 'Splash' | 'Pre-Team' | 'Littles' | 'Age Groupers' | 'Seniors' | 'Masters' | 'Other';
 
-export const GROUPS: GroupType[] = ['Rec Team', 'Splash', 'Pre-Team', 'Littles', 'Age Groupers', 'Seniors', 'Masters'];
+export const GROUPS: GroupType[] = ['Rec Team', 'Splash', 'Pre-Team', 'Littles', 'Age Groupers', 'Seniors', 'Masters', 'Other'];
 
 export interface Athlete {
   id?: string;
@@ -9,6 +9,8 @@ export interface Athlete {
   group: GroupType;
   dob?: string;
   gender?: string;
+  swimCloudId?: string;
+  [key: string]: any;
 }
 
 export type AttendanceStatus = 'present' | 'absent' | 'unmarked';

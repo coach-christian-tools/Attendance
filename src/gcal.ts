@@ -27,3 +27,22 @@ export const fetchEventsForDate = async (date: Date): Promise<GCalEvent[]> => {
   const data = await res.json();
   return data.items || [];
 };
+
+export const fetchEventsForRange = async (start: Date, end: Date): Promise<GCalEvent[]> => {
+  const calendarId = encodeURIComponent(import.meta.env.VITE_GOOGLE_CALENDAR_ID);
+  const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+  
+  const timeMin = startOfDay(start).toISOString();
+  const timeMax = endOfDay(end).toISOString();
+  
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${apiKey}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+  
+  const res = await fetch(url);
+  if (!res.ok) {
+    console.error('Failed to fetch events', await res.text());
+    return [];
+  }
+  
+  const data = await res.json();
+  return data.items || [];
+};

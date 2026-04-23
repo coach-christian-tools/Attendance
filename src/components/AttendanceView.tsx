@@ -6,7 +6,15 @@ import { getAthletes, getAttendance, saveAttendance } from '../services/db';
 import { GROUPS, type Athlete, type AttendanceStatus, type GroupType } from '../types';
 
 export default function AttendanceView() {
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const stored = sessionStorage.getItem('attendanceNavDate');
+    if (stored) {
+      sessionStorage.removeItem('attendanceNavDate');
+      const [y, m, d] = stored.split('-');
+      return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    }
+    return new Date();
+  });
   const [events, setEvents] = useState<GCalEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
 
@@ -14,7 +22,14 @@ export default function AttendanceView() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [allAttendance, setAllAttendance] = useState<Record<string, Record<string, AttendanceStatus>>>({});
 
-  const [filterGroup, setFilterGroup] = useState<GroupType | 'All'>('All');
+  const [filterGroup, setFilterGroup] = useState<GroupType | 'All'>(() => {
+    const stored = sessionStorage.getItem('attendanceNavGroup');
+    if (stored) {
+      sessionStorage.removeItem('attendanceNavGroup');
+      return stored as GroupType;
+    }
+    return 'All';
+  });
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -41,7 +56,15 @@ export default function AttendanceView() {
 
       setEvents(processedEvents);
       if (processedEvents.length > 0) {
-        setSelectedEventId(processedEvents[0].id);
+        let defaultEventId = processedEvents[0].id;
+        if (filterGroup !== 'All') {
+          const searchStr = filterGroup === 'Rec Team' ? 'Rec' : filterGroup;
+          const matchingEvent = processedEvents.find(e => e.summary.toLowerCase().includes(searchStr.toLowerCase()));
+          if (matchingEvent) {
+            defaultEventId = matchingEvent.id;
+          }
+        }
+        setSelectedEventId(defaultEventId);
       } else {
         setSelectedEventId(null);
       }
