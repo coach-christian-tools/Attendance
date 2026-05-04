@@ -1,6 +1,6 @@
 import { collection, doc, getDocs, getDoc, setDoc, deleteDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { Athlete, AttendanceRecord, AttendanceStatus } from '../types';
+import type { Athlete, AttendanceRecord, AttendanceStatus, GuestAttendance } from '../types';
 
 const athletesCol = collection(db, 'athletes');
 const attendanceCol = collection(db, 'attendance');
@@ -26,20 +26,25 @@ export const deleteAthlete = async (id: string): Promise<void> => {
   await deleteDoc(docRef);
 };
 
-export const getAttendance = async (eventId: string, date: string): Promise<Record<string, AttendanceStatus>> => {
+export const getAttendance = async (eventId: string, date: string): Promise<{ records: Record<string, AttendanceStatus>, guests?: Record<string, GuestAttendance> }> => {
   const docId = `${eventId}_${date}`;
   const docRef = doc(attendanceCol, docId);
   const snapshot = await getDoc(docRef);
   if (snapshot.exists()) {
-    return (snapshot.data() as AttendanceRecord).records || {};
+    const data = snapshot.data() as AttendanceRecord;
+    return { records: data.records || {}, guests: data.guests || {} };
   }
-  return {};
+  return { records: {} };
 };
 
-export const saveAttendance = async (eventId: string, date: string, records: Record<string, AttendanceStatus>): Promise<void> => {
+export const saveAttendance = async (eventId: string, date: string, records: Record<string, AttendanceStatus>, guests?: Record<string, GuestAttendance>): Promise<void> => {
   const docId = `${eventId}_${date}`;
   const docRef = doc(attendanceCol, docId);
-  await setDoc(docRef, { eventId, date, records }, { merge: true });
+  const dataToSave: Partial<AttendanceRecord> = { eventId, date, records };
+  if (guests) {
+    dataToSave.guests = guests;
+  }
+  await setDoc(docRef, dataToSave, { merge: true });
 };
 
 export const getAllAttendance = async (): Promise<AttendanceRecord[]> => {

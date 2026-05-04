@@ -15,8 +15,15 @@ export interface Athlete {
 
 export type AttendanceStatus = 'present' | 'absent' | 'unmarked';
 
+export interface GuestAttendance {
+  firstName: string;
+  lastName: string;
+  status: AttendanceStatus;
+}
+
 export interface AttendanceRecord {
   eventId: string;
   date: string;
   records: Record<string, AttendanceStatus>; // athleteId -> status
+  guests?: Record<string, GuestAttendance>; // guestId -> GuestAttendance
 }
