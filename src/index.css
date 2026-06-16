@@ -370,13 +370,14 @@ body {
 
 /* Login */
 .login-container {
-  min-height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 2rem;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  overflow: hidden;
 }
 
 .login-card {
@@ -397,6 +398,15 @@ body {
 .login-card p {
   color: var(--text-secondary);
   margin-bottom: 2rem;
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 1rem;
+  }
+  .login-card {
+    padding: 1.5rem;
+  }
 }
 
 /* Full Screen Popup */
