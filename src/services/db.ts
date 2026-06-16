@@ -26,23 +26,29 @@ export const deleteAthlete = async (id: string): Promise<void> => {
   await deleteDoc(docRef);
 };
 
-export const getAttendance = async (eventId: string, date: string): Promise<{ records: Record<string, AttendanceStatus>, guests?: Record<string, GuestAttendance> }> => {
+export const getAttendance = async (eventId: string, date: string): Promise<{ records: Record<string, AttendanceStatus>, guests?: Record<string, GuestAttendance>, note?: string, groupOverride?: string }> => {
   const docId = `${eventId}_${date}`;
   const docRef = doc(attendanceCol, docId);
   const snapshot = await getDoc(docRef);
   if (snapshot.exists()) {
     const data = snapshot.data() as AttendanceRecord;
-    return { records: data.records || {}, guests: data.guests || {} };
+    return { records: data.records || {}, guests: data.guests || {}, note: data.note, groupOverride: data.groupOverride };
   }
   return { records: {} };
 };
 
-export const saveAttendance = async (eventId: string, date: string, records: Record<string, AttendanceStatus>, guests?: Record<string, GuestAttendance>): Promise<void> => {
+export const saveAttendance = async (eventId: string, date: string, records: Record<string, AttendanceStatus>, guests?: Record<string, GuestAttendance>, note?: string, groupOverride?: string): Promise<void> => {
   const docId = `${eventId}_${date}`;
   const docRef = doc(attendanceCol, docId);
   const dataToSave: Partial<AttendanceRecord> = { eventId, date, records };
   if (guests) {
     dataToSave.guests = guests;
+  }
+  if (note !== undefined) {
+    dataToSave.note = note;
+  }
+  if (groupOverride !== undefined) {
+    dataToSave.groupOverride = groupOverride;
   }
   await setDoc(docRef, dataToSave, { merge: true });
 };

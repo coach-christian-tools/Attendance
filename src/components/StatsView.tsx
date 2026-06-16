@@ -3,7 +3,7 @@ import { format, subDays } from 'date-fns';
 import { getAthletes, getAllAttendance } from '../services/db';
 import { type AttendanceRecord, GROUPS } from '../types';
 import { fetchEventsForRange, type GCalEvent } from '../gcal';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, StickyNote, X } from 'lucide-react';
 
 interface DayStats {
   date: string;
@@ -13,6 +13,8 @@ interface DayStats {
   totalAthletes: number;
   groupStats: Record<string, { present: number, absent: number, undeclared: number, total: number }>;
   groupHasRecords: Record<string, boolean>;
+  groupNotes: Record<string, string>;
+  dayHasNotes: boolean;
 }
 
 const StatusBar = ({ present, absent, total }: { present: number, absent: number, total: number }) => {
@@ -33,6 +35,7 @@ export default function StatsView() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DayStats[]>([]);
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
+  const [popupNote, setPopupNote] = useState<{ group: string, date: string, text: string } | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -92,19 +95,65 @@ export default function StatsView() {
           groupHasRecords[g] = false;
         });
 
+        const groupNotes: Record<string, string> = {};
+        let dayHasNotes = false;
+
+        const eventNotes: Record<string, string> = {};
+        const eventOverrides: Record<string, string> = {};
+        recordsForDay.forEach(r => {
+          if (r.note) eventNotes[r.eventId] = r.note;
+          if (r.groupOverride) eventOverrides[r.eventId] = r.groupOverride;
+        });
+
         // Determine which groups had events based on GCal
         eventsForDay.forEach(e => {
+          const note = eventNotes[e.id];
+          if (note) dayHasNotes = true;
+          
+          const override = eventOverrides[e.id];
+          if (override === 'None') return;
+
           let eventMatchedGroup = false;
-          GROUPS.forEach(g => {
-            const searchStr = g === 'Rec Team' ? 'Rec' : g;
-            if (e.summary.toLowerCase().includes(searchStr.toLowerCase())) {
-              groupHasRecords[g] = true;
+          
+          if (override && override !== 'All') {
+            if (groupHasRecords[override] !== undefined) {
+              groupHasRecords[override] = true;
               eventMatchedGroup = true;
+              if (note) groupNotes[override] = note;
             }
-          });
+          } else {
+            GROUPS.forEach(g => {
+              const searchStr = g === 'Rec Team' ? 'Rec' : g;
+              if (e.summary.toLowerCase().includes(searchStr.toLowerCase())) {
+                groupHasRecords[g] = true;
+                eventMatchedGroup = true;
+                if (note) groupNotes[g] = note;
+              }
+            });
+          }
+
           if (!eventMatchedGroup) {
-            // Full team event, all groups have an event
-            GROUPS.forEach(g => { groupHasRecords[g] = true; });
+            if (override === 'All' || /all|full team/i.test(e.summary)) {
+              // Full team event, all groups have an event
+              GROUPS.forEach(g => { 
+                groupHasRecords[g] = true; 
+                if (note) groupNotes[g] = note;
+              });
+            } else {
+              // Only include groups that have at least one marked athlete for this event
+              const eventRecord = recordsForDay.find(r => r.eventId === e.id);
+              if (eventRecord && eventRecord.records) {
+                Object.entries(eventRecord.records).forEach(([athId, status]) => {
+                  if (status === 'present' || status === 'absent') {
+                    const athlete = athletes.find(a => a.id === athId);
+                    if (athlete && athlete.group) {
+                      groupHasRecords[athlete.group] = true;
+                      if (note) groupNotes[athlete.group] = note;
+                    }
+                  }
+                });
+              }
+            }
           }
         });
 
@@ -121,6 +170,7 @@ export default function StatsView() {
           let finalStatus = 'unmarked';
 
           for (const record of recordsForDay) {
+            if (eventOverrides[record.eventId] === 'None') continue;
             const status = record.records[athlete.id];
             if (status === 'present') {
               finalStatus = 'present';
@@ -160,7 +210,9 @@ export default function StatsView() {
           totalUndeclared: dayTotalUndeclared,
           totalAthletes: dayTotalAthletes,
           groupStats,
-          groupHasRecords
+          groupHasRecords,
+          groupNotes,
+          dayHasNotes
         };
       });
 
@@ -211,7 +263,12 @@ export default function StatsView() {
               className="flex-between"
             >
               <div style={{ flex: 1 }}>
-                <h3 style={{ margin: 0, marginBottom: '0.5rem', fontSize: '1rem' }}>{displayDate}</h3>
+                <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {displayDate}
+                    {dayStat.dayHasNotes && <StickyNote size={16} color="var(--accent-color)" />}
+                  </h3>
+                </div>
                 <div style={{ marginBottom: '0.5rem' }}>
                     <StatusBar 
                       present={dayStat.totalPresent} 
@@ -249,7 +306,21 @@ export default function StatsView() {
                         }}
                       >
                         <div className="flex-between" style={{ fontSize: '0.85rem' }}>
-                          <span style={{ fontWeight: 500 }}>{group}</span>
+                          <span style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            {group}
+                            {dayStat.groupNotes[group] && (
+                              <button 
+                                className="btn-icon" 
+                                style={{ padding: '0.1rem', color: 'var(--accent-color)' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPopupNote({ group, date: displayDate, text: dayStat.groupNotes[group] });
+                                }}
+                              >
+                                <StickyNote size={14} />
+                              </button>
+                            )}
+                          </span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                             {gStat.present} / {gStat.total} ({Math.round((gStat.present / gStat.total) * 100)}%)
                           </span>
@@ -268,6 +339,23 @@ export default function StatsView() {
           </div>
         );
       })}
+
+      {popupNote && (
+        <div className="full-screen-popup" onClick={() => setPopupNote(null)}>
+          <div className="popup-content" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
+            <div className="card" style={{ padding: '1.5rem', maxWidth: '400px', margin: '0 auto', width: '100%', boxShadow: 'var(--shadow-md)' }} onClick={e => e.stopPropagation()}>
+              <div className="flex-between mb-4">
+                <h3 style={{ margin: 0, color: 'var(--accent-color)' }}>Note: {popupNote.group}</h3>
+                <button className="btn-icon" onClick={() => setPopupNote(null)}><X size={20} /></button>
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>{popupNote.date}</div>
+              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5, color: 'var(--text-primary)' }}>
+                {popupNote.text}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

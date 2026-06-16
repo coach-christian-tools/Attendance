@@ -19,38 +19,26 @@ export default function Home({ error }: { error?: string }) {
   };
 
   return (
-    <div className="home-container" style={{
-      minHeight: '100dvh',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '2rem'
-    }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-        <h1 style={{ color: 'var(--accent-color)', fontSize: '2rem', marginBottom: '0.5rem', textAlign: 'center' }}>
-          Velocity Swimming
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
-          Welcome to the Velocity Attendance App.
-        </p>
-      </div>
+    <div className="login-container">
+      <div className="login-card">
+        <img
+          src="/team-banner.png"
+          alt="Velocity Swimming"
+          style={{ width: '100%', maxWidth: '300px', marginBottom: '1.5rem', borderRadius: '8px' }}
+        />
 
-      <div style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
-        {error && <p style={{ color: 'var(--absent-color)', marginBottom: '1rem', textAlign: 'center' }}>{error}</p>}
-        <button 
-          onClick={handleAdminLogin} 
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            fontSize: '0.875rem',
-            cursor: 'pointer',
-            opacity: 0.7,
-            textDecoration: 'underline'
-          }}
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+          Sign in to take attendance.
+        </p>
+
+        {error && <p style={{ color: 'var(--absent-color)', marginBottom: '1rem' }}>{error}</p>}
+
+        <button
+          className="btn btn-primary"
+          onClick={handleAdminLogin}
+          style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }}
         >
-          I am an Admin
+          Sign In
         </button>
       </div>
     </div>

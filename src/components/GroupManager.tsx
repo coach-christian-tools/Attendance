@@ -17,7 +17,6 @@ export default function GroupManager() {
 
   // Popup State
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null);
-  const [swimCloudIdInput, setSwimCloudIdInput] = useState('');
   const [editGroup, setEditGroup] = useState<GroupType>('Splash');
   const [isSavingDetails, setIsSavingDetails] = useState(false);
 
@@ -45,7 +44,6 @@ export default function GroupManager() {
 
   const openAthleteDetails = (athlete: Athlete) => {
     setSelectedAthlete(athlete);
-    setSwimCloudIdInput(athlete.swimCloudId || '');
     setEditGroup(athlete.group);
   };
 
@@ -53,8 +51,8 @@ export default function GroupManager() {
     if (!selectedAthlete?.id) return;
     setIsSavingDetails(true);
     try {
-      await updateAthlete(selectedAthlete.id, { swimCloudId: swimCloudIdInput, group: editGroup });
-      setSelectedAthlete({ ...selectedAthlete, swimCloudId: swimCloudIdInput, group: editGroup });
+      await updateAthlete(selectedAthlete.id, { group: editGroup });
+      setSelectedAthlete({ ...selectedAthlete, group: editGroup });
       loadAthletes();
     } catch (err) {
       console.error(err);
@@ -238,18 +236,6 @@ export default function GroupManager() {
             
             <div className="card" style={{ padding: '1.5rem', marginTop: '1rem', marginBottom: '1.5rem' }}>
               <div className="data-row">
-                <div className="data-label">SwimCloud ID</div>
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                  <input 
-                    className="input-field" 
-                    value={swimCloudIdInput} 
-                    onChange={e => setSwimCloudIdInput(e.target.value)} 
-                    placeholder="Enter SwimCloud ID"
-                  />
-                </div>
-              </div>
-
-              <div className="data-row">
                 <div className="data-label">Group</div>
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                   <select 
@@ -274,7 +260,7 @@ export default function GroupManager() {
               </div>
 
               {Object.entries(selectedAthlete)
-                .filter(([key]) => !['id', 'firstName', 'lastName', 'swimCloudId', 'group'].includes(key))
+                .filter(([key]) => !['id', 'firstName', 'lastName', 'group'].includes(key))
                 .map(([key, value]) => {
                   let displayValue = value?.toString() || '-';
                   if (typeof value === 'object') {

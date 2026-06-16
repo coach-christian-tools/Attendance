@@ -9,7 +9,6 @@ export interface Athlete {
   group: GroupType;
   dob?: string;
   gender?: string;
-  swimCloudId?: string;
   [key: string]: any;
 }
 
@@ -26,4 +25,6 @@ export interface AttendanceRecord {
   date: string;
   records: Record<string, AttendanceStatus>; // athleteId -> status
   guests?: Record<string, GuestAttendance>; // guestId -> GuestAttendance
+  note?: string;
+  groupOverride?: string;
 }

@@ -20,13 +20,16 @@ export default function AttendanceView() {
 
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
-  const [allAttendance, setAllAttendance] = useState<Record<string, { records: Record<string, AttendanceStatus>, guests?: Record<string, GuestAttendance> }>>({});
+  const [allAttendance, setAllAttendance] = useState<Record<string, { records: Record<string, AttendanceStatus>, guests?: Record<string, GuestAttendance>, note?: string, groupOverride?: string }>>({});
 
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [guestFirstName, setGuestFirstName] = useState('');
   const [guestLastName, setGuestLastName] = useState('');
 
-  const [filterGroup, setFilterGroup] = useState<GroupType | 'All'>(() => {
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteText, setNoteText] = useState('');
+
+  const [filterGroup, setFilterGroup] = useState<GroupType | 'All' | 'None'>(() => {
     const stored = sessionStorage.getItem('attendanceNavGroup');
     if (stored) {
       sessionStorage.removeItem('attendanceNavGroup');
@@ -100,7 +103,7 @@ export default function AttendanceView() {
 
       if (!active) return;
 
-      const newAllAttendance: Record<string, { records: Record<string, AttendanceStatus>, guests?: Record<string, GuestAttendance> }> = {};
+      const newAllAttendance: Record<string, { records: Record<string, AttendanceStatus>, guests?: Record<string, GuestAttendance>, note?: string, groupOverride?: string }> = {};
       results.forEach(r => {
         newAllAttendance[r.id] = r.data;
       });
@@ -111,6 +114,16 @@ export default function AttendanceView() {
   }, [events, selectedDate]);
 
   const attendance = selectedEventId ? (allAttendance[selectedEventId] || { records: {} }) : { records: {} };
+  const currentGroupSelection = (attendance.groupOverride as GroupType | 'All' | 'None') || filterGroup;
+
+  const handleGroupSelectionChange = async (newVal: string) => {
+    setFilterGroup(newVal as GroupType | 'All' | 'None');
+    if (!selectedEventId) return;
+    const newAttendance = { ...attendance, groupOverride: newVal };
+    setAllAttendance(prev => ({ ...prev, [selectedEventId]: newAttendance }));
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    await saveAttendance(selectedEventId, dateStr, newAttendance.records, newAttendance.guests, newAttendance.note, newVal);
+  };
 
   const handleDateChange = (days: number) => {
     setSelectedDate(prev => addDays(prev, days));
@@ -149,7 +162,7 @@ export default function AttendanceView() {
 
       // Save to Firebase
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      await saveAttendance(selectedEventId, dateStr, newRecords, attendance.guests);
+      await saveAttendance(selectedEventId, dateStr, newRecords, attendance.guests, attendance.note, attendance.groupOverride);
     }
   };
 
@@ -171,11 +184,19 @@ export default function AttendanceView() {
     setAllAttendance(prev => ({ ...prev, [selectedEventId]: newAttendance }));
     
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    await saveAttendance(selectedEventId, dateStr, newAttendance.records, newGuests);
+    await saveAttendance(selectedEventId, dateStr, newAttendance.records, newGuests, attendance.note, attendance.groupOverride);
     
-    setGuestFirstName('');
     setGuestLastName('');
     setShowGuestModal(false);
+  };
+
+  const handleSaveNote = async () => {
+    if (!selectedEventId) return;
+    const newAttendance = { ...attendance, note: noteText };
+    setAllAttendance(prev => ({ ...prev, [selectedEventId]: newAttendance }));
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    await saveAttendance(selectedEventId, dateStr, newAttendance.records, newAttendance.guests, noteText, attendance.groupOverride);
+    setShowNoteModal(false);
   };
 
   const refreshAttendance = async () => {
@@ -184,7 +205,7 @@ export default function AttendanceView() {
     const results = await Promise.all(
       events.map(e => getAttendance(e.id, dateStr).then(data => ({ id: e.id, data })))
     );
-    const newAllAttendance: Record<string, { records: Record<string, AttendanceStatus>, guests?: Record<string, GuestAttendance> }> = {};
+    const newAllAttendance: Record<string, { records: Record<string, AttendanceStatus>, guests?: Record<string, GuestAttendance>, note?: string, groupOverride?: string }> = {};
     results.forEach(r => {
       newAllAttendance[r.id] = r.data;
     });
@@ -208,8 +229,12 @@ export default function AttendanceView() {
   // Filter and sort athletes
   let displayAthletes = athletes;
   if (selectedEvent) {
-    if (isFullTeam && filterGroup !== 'All') {
-      displayAthletes = athletes.filter(a => a.group === filterGroup);
+    if (isFullTeam && currentGroupSelection !== 'All') {
+      if (currentGroupSelection === 'None') {
+        displayAthletes = [];
+      } else {
+        displayAthletes = athletes.filter(a => a.group === currentGroupSelection);
+      }
     } else if (!isFullTeam) {
       // Find matching group
       const matchedGroup = GROUPS.find(g => {
@@ -305,13 +330,23 @@ export default function AttendanceView() {
             </div>
           )}
 
-          <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
             <button 
               className="btn" 
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--surface-color)', color: 'var(--text-primary)', border: '1px solid var(--unmarked-color)' }}
               onClick={() => setShowGuestModal(true)}
             >
               <Plus size={18} /> Add Guest
+            </button>
+            <button 
+              className="btn" 
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--surface-color)', color: 'var(--text-primary)', border: '1px solid var(--unmarked-color)' }}
+              onClick={() => {
+                setNoteText(attendance.note || '');
+                setShowNoteModal(true);
+              }}
+            >
+              <Plus size={18} /> {attendance.note ? 'Edit Note' : 'Add Note'}
             </button>
           </div>
 
@@ -320,18 +355,22 @@ export default function AttendanceView() {
 
       <div className="bottom-controls">
         {selectedEventId && isFullTeam && (
-          <div className="mb-2">
-            <select
-              className="input-field"
-              value={filterGroup}
-              onChange={(e) => setFilterGroup(e.target.value as GroupType | 'All')}
-            >
-              <option value="All">All Groups (Full Team Event)</option>
-              {GROUPS.map(g => {
-                const size = athletes.filter(a => a.group === g).length;
-                return <option key={g} value={g}>{g} ({size})</option>;
-              })}
-            </select>
+          <div className="input-group" style={{ margin: '0 0 0.5rem 0' }}>
+            <div style={{ position: 'relative' }}>
+              <select
+                className="input-field"
+                value={currentGroupSelection}
+                onChange={(e) => handleGroupSelectionChange(e.target.value)}
+                style={{ padding: '0.5rem 0.75rem', fontSize: '0.9rem', backgroundColor: 'var(--surface-color)', boxShadow: 'var(--shadow-sm)' }}
+              >
+                <option value="All">All Groups (Full Team Event)</option>
+                <option value="None">None (Don't Tally in Stats)</option>
+                {GROUPS.map(g => {
+                  const size = athletes.filter(a => a.group === g).length;
+                  return <option key={g} value={g}>{g} ({size})</option>;
+                })}
+              </select>
+            </div>
           </div>
         )}
 
@@ -375,53 +414,93 @@ export default function AttendanceView() {
 
       {/* Guest Modal */}
       {showGuestModal && (
-        <div className="modal-overlay" onClick={() => setShowGuestModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="flex-between mb-4">
-              <h2 style={{ margin: 0 }}>Add Guest</h2>
-              <button className="btn-icon" onClick={() => setShowGuestModal(false)}>
-                <X size={24} />
-              </button>
+        <div className="full-screen-popup">
+          <div className="popup-header">
+            <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Add Guest</h2>
+            <button className="btn-icon" onClick={() => setShowGuestModal(false)}>
+              <X size={24} />
+            </button>
+          </div>
+          
+          <div className="popup-content">
+            <div className="card" style={{ padding: '1.5rem' }}>
+              <div className="mb-4">
+                <label className="input-label">First Name</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={guestFirstName}
+                  onChange={e => setGuestFirstName(e.target.value)}
+                  placeholder="Guest first name"
+                  autoFocus
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="input-label">Last Name</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={guestLastName}
+                  onChange={e => setGuestLastName(e.target.value)}
+                  placeholder="Guest last name"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleAddGuest();
+                  }}
+                />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                <button className="btn btn-secondary" style={{ flex: 1, backgroundColor: 'var(--unmarked-color)' }} onClick={() => setShowGuestModal(false)}>Cancel</button>
+                <button 
+                  className="btn btn-primary" 
+                  style={{ flex: 1 }} 
+                  onClick={handleAddGuest}
+                  disabled={!guestFirstName.trim() || !guestLastName.trim()}
+                >
+                  Add Guest
+                </button>
+              </div>
             </div>
-            
-            <div className="mb-4">
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>First Name</label>
-              <input
-                type="text"
-                className="input-field"
-                value={guestFirstName}
-                onChange={e => setGuestFirstName(e.target.value)}
-                placeholder="Guest first name"
-                autoFocus
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Last Name</label>
-              <input
-                type="text"
-                className="input-field"
-                value={guestLastName}
-                onChange={e => setGuestLastName(e.target.value)}
-                placeholder="Guest last name"
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    handleAddGuest();
-                  }
-                }}
-              />
-            </div>
-            
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowGuestModal(false)}>Cancel</button>
-              <button 
-                className="btn btn-primary" 
-                style={{ flex: 1 }} 
-                onClick={handleAddGuest}
-                disabled={!guestFirstName.trim() || !guestLastName.trim()}
-              >
-                Add Guest
-              </button>
+          </div>
+        </div>
+      )}
+
+      {/* Note Modal */}
+      {showNoteModal && (
+        <div className="full-screen-popup">
+          <div className="popup-header">
+            <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Event Note</h2>
+            <button className="btn-icon" onClick={() => setShowNoteModal(false)}>
+              <X size={24} />
+            </button>
+          </div>
+          
+          <div className="popup-content">
+            <div className="card" style={{ padding: '1.5rem' }}>
+              <div className="mb-4">
+                <label className="input-label">Note for {selectedEvent?.displaySummary || 'Event'}</label>
+                <textarea
+                  className="input-field"
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  placeholder="Enter a note..."
+                  rows={6}
+                  style={{ resize: 'vertical' }}
+                  autoFocus
+                />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                <button className="btn btn-secondary" style={{ flex: 1, backgroundColor: 'var(--unmarked-color)' }} onClick={() => setShowNoteModal(false)}>Cancel</button>
+                <button 
+                  className="btn btn-primary" 
+                  style={{ flex: 1 }} 
+                  onClick={handleSaveNote}
+                >
+                  Save Note
+                </button>
+              </div>
             </div>
           </div>
         </div>
