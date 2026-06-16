@@ -30,7 +30,7 @@ function App() {
       <Routes>
         <Route 
           path="/" 
-          element={<Home error={user && !isAuthorized ? "Unauthorized domain." : undefined} />} 
+          element={isAuthorized ? <Navigate to="/admin" replace /> : <Home error={user && !isAuthorized ? "Unauthorized domain." : undefined} />} 
         />
         <Route 
           path="/admin" 

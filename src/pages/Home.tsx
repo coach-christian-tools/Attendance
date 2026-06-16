@@ -17,8 +17,7 @@ export default function Home({ error }: { error?: string }) {
             navigate('/admin');
           } else {
             setAuthError('Unauthorized: You must use a @velocity-swimming.com email address.');
-            // Optionally sign them out here since they logged in with the wrong account
-            auth.signOut();
+            // Removed auth.signOut() so the app state can persist and show the logout button
           }
         }
         setLoading(false);
@@ -45,7 +44,6 @@ export default function Home({ error }: { error?: string }) {
           navigate('/admin');
         } else {
           setAuthError('Unauthorized: You must use a @velocity-swimming.com email address.');
-          auth.signOut();
         }
       }
     } catch (err) {
@@ -64,6 +62,8 @@ export default function Home({ error }: { error?: string }) {
     );
   }
 
+  const isWrongEmail = auth.currentUser && !auth.currentUser.email?.endsWith('@velocity-swimming.com');
+
   return (
     <div className="login-container">
       <div className="login-card">
@@ -73,23 +73,43 @@ export default function Home({ error }: { error?: string }) {
           style={{ width: '100%', maxWidth: '300px', marginBottom: '1.5rem', borderRadius: '8px' }}
         />
 
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-          Sign in to take attendance.
-        </p>
+        {isWrongEmail ? (
+          <>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              Authentication Error
+            </p>
+            <p style={{ color: 'var(--absent-color)', marginBottom: '2rem', fontWeight: 500 }}>
+              Unauthorized: You must use a @velocity-swimming.com email address.
+            </p>
+            <button
+              className="btn btn-primary"
+              onClick={() => auth.signOut()}
+              style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', backgroundColor: 'var(--text-secondary)' }}
+            >
+              Log Out
+            </button>
+          </>
+        ) : (
+          <>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+              Sign in to take attendance.
+            </p>
 
-        {(error || authError) && (
-          <p style={{ color: 'var(--absent-color)', marginBottom: '1rem' }}>
-            {error || authError}
-          </p>
+            {(error || authError) && (
+              <p style={{ color: 'var(--absent-color)', marginBottom: '1rem' }}>
+                {error || authError}
+              </p>
+            )}
+
+            <button
+              className="btn btn-primary"
+              onClick={handleAdminLogin}
+              style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }}
+            >
+              Sign In
+            </button>
+          </>
         )}
-
-        <button
-          className="btn btn-primary"
-          onClick={handleAdminLogin}
-          style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }}
-        >
-          Sign In
-        </button>
       </div>
     </div>
   );
